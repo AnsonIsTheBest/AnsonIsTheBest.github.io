@@ -1,0 +1,8 @@
+body {
+  text-align: center;
+  font-family: sans-serif;
+}
+#pokemon-img {
+  width: 200px;
+  filter: brightness(0);
+}

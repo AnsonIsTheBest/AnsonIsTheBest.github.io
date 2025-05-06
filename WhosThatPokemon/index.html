@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>宝可梦我是谁</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>猜猜这个宝可梦是谁？</h1>
+  <img id="pokemon-img" src="" alt="宝可梦剪影" />
+  <input type="text" id="guess" placeholder="请输入宝可梦名字" />
+  <button onclick="checkGuess()">提交</button>
+  <p id="result"></p>
+  <button onclick="loadNew()">换一个</button>
+
+  <script src="poke_data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
