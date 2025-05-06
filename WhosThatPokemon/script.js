@@ -46,8 +46,6 @@ function checkGuess() {
     }
   } else {
     result.textContent = "❌ 错了，再试一次！";
-    img.style.filter = "none"; // 显示原图
-
   }
 }
 
