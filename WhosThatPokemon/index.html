@@ -16,14 +16,24 @@
 </head>
 <body>
   <h1>猜猜这个宝可梦是谁？</h1>
-  <img id="pokemon-img" src="" alt="宝可梦剪影" />
-  <input list="pokemon-list" id="guess" placeholder="请输入宝可梦名字" />
-  <datalist id="pokemon-list"></datalist>
-  <button onclick="checkGuess()">提交</button>
-  <p id="result"></p>
-  <button onclick="loadNew()">换一个</button>
 
-  <script src="poke_data.js"></script>
-  <script src="script.js"></script>
+<div>
+  <button onclick="startTimedMode()">15秒挑战模式</button>
+  <button onclick="startFreeMode()">1分钟自由答题</button>
+</div>
+
+<p id="mode-indicator"></p>
+<p id="timer">⏱️ 时间：</p>
+
+<img id="pokemon-img" src="" alt="宝可梦剪影" />
+<input list="pokemon-list" id="guess" placeholder="请输入宝可梦名字" />
+<datalist id="pokemon-list"></datalist>
+<button onclick="checkGuess()">提交</button>
+
+<p id="result"></p>
+<button onclick="loadNew()">换一个</button>
+
+<script src="poke_data.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
