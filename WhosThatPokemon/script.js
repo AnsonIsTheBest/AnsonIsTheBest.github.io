@@ -104,7 +104,21 @@ function populateDatalist() {
   }
 }
 
+function toggleDatalist() {
+  const toggle = document.getElementById("datalist-toggle");
+  const guessInput = document.getElementById("guess");
+  
+  if (toggle.checked) {
+    guessInput.setAttribute("list", "pokemon-list");
+    populateDatalist(); // 确保数据列表是最新的
+  } else {
+    guessInput.removeAttribute("list");
+  }
+}
+
 window.onload = () => {
   populateDatalist();
   document.getElementById("timer").textContent = "⏱️ 时间：--";
+  // 初始化时确保输入框有list属性
+  document.getElementById("guess").setAttribute("list", "pokemon-list");
 };
