@@ -1,0 +1,187 @@
+<!-- 省略了 <head> 部分，请使用上一个版本的样式与结构，直接替换 <body> 和 <script> 部分内容即可 -->
+<body>
+  <button id="lang-toggle">切换到中文</button>
+  <h1 id="title">Whos That Brawler</h1>
+
+  <img id="character-img" src="" alt="Guess Who" />
+  
+  <div id="controls">
+    <button id="start-limited" onclick="startGame('limited')">Start 15s Mode</button>
+    <button id="start-free" onclick="startGame('free')">Start 30s Mode</button>
+    <!-- <button id="skip-btn" onclick="skipCharacter()" style="display:none;">换一个</button> -->
+    <!-- 换一个有问题还没来得及解决 -->
+  </div>
+
+  <div id="timer"></div>
+  <div id="input-box">
+    <input type="text" id="guess" placeholder="Enter character name" disabled />
+    <button onclick="checkAnswer()" id="submit-btn" disabled>Submit</button>
+  </div>
+  <div id="feedback"></div>
+  <div id="score"></div>
+
+<!-- 之前代码略，同样结构，仅 JS 改动 -->
+<!-- 替换 <script> ... </script> 中的 JS 部分为以下更新代码 -->
+
+<script>
+  const characterDict = {
+    "8-Bit":"8比特", "Amber":"琥珀", "Angelo":"安吉洛", "Ash":"阿拾", "Barley":"巴利", "Bea":"贝亚",
+    "Belle":"贝尔", "Berry":"拜瑞", "Bibi":"比比", "Bo":"阿渤", "Bonnie":"邦尼", "Brock":"布洛克",
+    "Bull":"公牛", "Buster":"巴斯特", "Buzz":"巴兹", "Byron":"拜伦", "Carl":"卡尔", "Charlie":"查莉",
+    "Chester":"切斯特", "Chuck":"查克", "Clancy":"克兰西", "Colette":"科莱特", "Colt":"柯尔特",
+    "Cordelius":"科迪琉斯", "Crow":"黑鸦", "Darryl":"达里尔", "Doug":"道格", "Draco":"德拉科",
+    "Dynamike":"爆破麦克", "Edgar":"艾德加", "El_Primo":"艾尔普里莫", "Emz":"艾魅", "Eve":"伊芙",
+    "Fang":"阿方", "Finx":"芬克斯", "Frank":"弗兰肯", "Gale":"格尔", "Gene":"吉恩", "Gray":"戈雷",
+    "Griff":"格里夫", "Grom":"格罗姆", "Gus":"格斯", "Hank":"汉克", "Jacky":"雅琪", "Jae-yong":"载勇",
+    "Janet":"珍妮特", "Jessie":"杰西", "Juju":"珠珠", "Kaze":"风姬", "Kenji":"健次", "Kit":"凯特",
+    "Larry_&_Lawrie":"拉里和劳里", "Leon":"里昂", "Lily":"莉莉", "Lola":"萝拉", "Lou":"小罗",
+    "Lumi":"露米", "Maisie":"麦茜", "Mandy":"曼迪", "Max":"麦克斯", "Meeple":"谜宝", "Meg":"梅格",
+    "Melodie":"麦乐迪", "Mico":"米科", "Moe":"阿萌", "Mortis":"莫提斯", "Mr._P":"P先生", "Nani":"纳妮",
+    "Nita":"妮塔", "Ollie":"奥利", "Otis":"奥蒂斯", "Pam":"帕姆", "Pearl":"珀尔", "Penny":"潘妮",
+    "Piper":"佩佩", "Poco":"波克", "R-T":"RT", "Rico":"瑞科", "Rosa":"罗莎", "Ruffs":"拉夫", "Sam":"山姆",
+    "Sandy":"沙迪", "Shade":"谢德", "Shelly":"雪莉", "Spike":"斯派克", "Sprout":"芽芽", "Squeak":"史魁克",
+    "Stu":"斯图", "Surge":"瑟奇", "Tara":"塔拉", "Tick":"迪克", "Willow":"薇洛"
+  };
+
+  let currentLang = "en";
+  let currentCharacter = "";
+  let mode = "";
+  let timer = null;
+  let timeLeft = 0;
+  let score = 0;
+  let roundStart = 0;
+  let totalTime = 0;
+  let btnLimited = null;
+  let btnFree = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    btnLimited = document.querySelector("button[onclick=\"startGame('limited')\"]");
+    btnFree = document.querySelector("button[onclick=\"startGame('free')\"]");
+
+    // 添加换一个按钮（仅自由模式）
+    const skipBtn = document.createElement("button");
+    skipBtn.textContent = "换一个 / Skip";
+    skipBtn.id = "skip-btn";
+    skipBtn.style.display = "none";
+    skipBtn.onclick = () => {
+      if (mode === "free") {
+        totalTime += (Date.now() - roundStart) / 1000;
+        loadCharacter();
+      }
+    };
+    document.getElementById("controls").appendChild(skipBtn);
+  });
+
+  function getRandomCharacter() {
+    const keys = Object.keys(characterDict);
+    return keys[Math.floor(Math.random() * keys.length)];
+  }
+
+  function loadCharacter() {
+    currentCharacter = getRandomCharacter();
+    const img = document.getElementById("character-img");
+    img.src = `${currentCharacter}.png`;
+    img.style.filter = "brightness(0)";
+    document.getElementById("guess").value = "";
+    document.getElementById("feedback").textContent = "";
+    document.getElementById("submit-btn").disabled = false;
+    document.getElementById("guess").disabled = false;
+    roundStart = Date.now();
+  }
+
+  function checkAnswer() {
+    const input = document.getElementById("guess").value.trim();
+    const correct = currentLang === "en" ? currentCharacter : characterDict[currentCharacter];
+    const inputNormalized = currentLang === "en" ? input.toLowerCase() : input;
+
+    if ((currentLang === "en" && inputNormalized === correct.toLowerCase()) ||
+        (currentLang === "zh" && input === correct)) {
+      document.getElementById("character-img").style.filter = "brightness(1)";
+      document.getElementById("feedback").textContent = currentLang === "en" ? "Correct!" : "答对了！";
+      document.getElementById("submit-btn").disabled = true;
+      document.getElementById("guess").disabled = true;
+
+      if (mode === "free") {
+        const timeUsed = (Date.now() - roundStart) / 1000;
+        score++;
+        totalTime += timeUsed;
+        setTimeout(loadCharacter, 800);
+      } else {
+        score++;
+        clearInterval(timer);
+        document.getElementById("timer").textContent = currentLang === "en" ? "Well done!" : "答对啦！";
+      }
+    } else {
+      document.getElementById("feedback").textContent = currentLang === "en" ? "Try again!" : "再试一次！";
+    }
+  }
+
+  function startGame(selectedMode) {
+    if (timer) clearInterval(timer);
+    mode = selectedMode;
+    score = 0;
+    totalTime = 0;
+    loadCharacter();
+
+    timeLeft = mode === "limited" ? 15 : 30;
+    updateButtons(true);
+
+    document.getElementById("score").textContent = "";
+    document.getElementById("skip-btn").style.display = mode === "free" ? "inline-block" : "none";
+
+    timer = setInterval(() => {
+      document.getElementById("timer").textContent =
+        (currentLang === "en" ? "Time left: " : "剩余时间：") + timeLeft + "s";
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        document.getElementById("submit-btn").disabled = true;
+        document.getElementById("guess").disabled = true;
+        document.getElementById("timer").textContent = currentLang === "en" ? "Time's up!" : "时间到！";
+        showFinalScore();
+        updateButtons(false);
+        return;
+      }
+      timeLeft--;
+    }, 1000);
+  }
+
+  function updateButtons(disable) {
+    btnLimited.disabled = disable;
+    btnFree.disabled = disable;
+  }
+
+  function showFinalScore() {
+    if (mode === "free") {
+      const avg = score > 0 ? (totalTime / score).toFixed(2) : 0;
+      document.getElementById("score").textContent =
+        currentLang === "en"
+          ? `You got ${score} correct! Avg time: ${avg}s`
+          : `你答对了 ${score} 个！平均用时：${avg} 秒`;
+    } else {
+      document.getElementById("score").textContent =
+        currentLang === "en" ? `You got ${score} correct!` : `你答对了 ${score} 个！`;
+    }
+  }
+
+  function toggleLanguage() {
+    currentLang = currentLang === "en" ? "zh" : "en";
+    document.getElementById("title").textContent =
+      currentLang === "en" ? "Who's that brawler?" : "我是谁 - 荒野乱斗";
+    document.getElementById("guess").placeholder =
+      currentLang === "en" ? "Enter character name" : "输入角色名字（中文）";
+    document.getElementById("lang-toggle").textContent =
+      currentLang === "en" ? "切换到中文" : "Switch to English";
+    document.getElementById("feedback").textContent = "";
+    document.getElementById("timer").textContent = "";
+    document.getElementById("score").textContent = "";
+    document.getElementById("submit-btn").disabled = true;
+    document.getElementById("guess").disabled = true;
+    document.getElementById("character-img").src = "";
+    document.getElementById("skip-btn").style.display = "none";
+    updateButtons(false);
+    clearInterval(timer);
+  }
+
+  document.getElementById("lang-toggle").addEventListener("click", toggleLanguage);
+</script>
+</body>
