@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zoom Mode - Who Am I</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: "Segoe UI", sans-serif;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    h1 {
+      color: #333;
+    }
+    #canvas-container {
+      margin-top: 20px;
+    }
+    canvas {
+      border: 3px solid #444;
+      border-radius: 8px;
+      image-rendering: pixelated;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #feedback-en, #feedback-zh, #timer, #errors, #score {
+      margin: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #555;
+    }
+    #lang-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    input[type="text"] {
+      padding: 8px;
+      font-size: 16px;
+      width: 220px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px 15px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+      margin: 5px;
+      cursor: pointer;
+      background-color: #28a745;
+      color: #fff;
+    }
+    #next-btn {
+      background-color: #17a2b8;
+    }
+  </style>
+</head>
+<body>
+  <button id="lang-toggle">中文</button>
+  <h1 id="title">Zoom Mode - Guess the Brawler!</h1>
+  <button id="Practice_button" onclick="startPractice()">Practice Mode</button>
+  <button id="Challenge_button" onclick="startChallenge()">Challenge Mode</button>
+  <div id="canvas-container">
+    <canvas id="zoom-canvas" width="120" height="120"></canvas>
+  </div>
+  <p>
+    <input list="brawler-list" type="text" id="guess" placeholder="Enter name...">
+    <datalist id="brawler-list"></datalist>
+    <button onclick="checkAnswer()" id="submit-btn">Submit</button>
+    <button onclick="nextIfPractice()" id="next-btn">Next</button>
+  </p>
+  <div id="feedback-en"></div>
+  <div id="feedback-zh" style="display:none"></div>
+  <div id="errors"></div>
+  <div id="score"></div>
+  <script>
+    const dict = {
+      "8-Bit":"8比特", "Amber":"琥珀", "Angelo":"安吉洛", "Ash":"阿拾", "Barley":"巴利", "Bea":"贝亚",
+    "Belle":"贝尔", "Berry":"拜瑞", "Bibi":"比比", "Bo":"阿渤", "Bonnie":"邦尼", "Brock":"布洛克",
+    "Bull":"公牛", "Buster":"巴斯特", "Buzz":"巴兹", "Byron":"拜伦", "Carl":"卡尔", "Charlie":"查莉",
+    "Chester":"切斯特", "Chuck":"查克", "Clancy":"克兰西", "Colette":"科莱特", "Colt":"柯尔特",
+    "Cordelius":"科迪琉斯", "Crow":"黑鸦", "Darryl":"达里尔", "Doug":"道格", "Draco":"德拉科",
+    "Dynamike":"爆破麦克", "Edgar":"艾德加", "El_Primo":"艾尔普里莫", "Emz":"艾魅", "Eve":"伊芙",
+    "Fang":"阿方", "Finx":"芬克斯", "Frank":"弗兰肯", "Gale":"格尔", "Gene":"吉恩", "Gray":"戈雷",
+    "Griff":"格里夫", "Grom":"格罗姆", "Gus":"格斯", "Hank":"汉克", "Jacky":"雅琪", "Jae-yong":"载勇",
+    "Janet":"珍妮特", "Jessie":"杰西", "Juju":"珠珠", "Kaze":"风姬", "Kenji":"健次", "Kit":"凯特",
+    "Larry_&_Lawrie":"拉里和劳里", "Leon":"里昂", "Lily":"莉莉", "Lola":"萝拉", "Lou":"小罗",
+    "Lumi":"露米", "Maisie":"麦茜", "Mandy":"曼迪", "Max":"麦克斯", "Meeple":"谜宝", "Meg":"梅格",
+    "Melodie":"麦乐迪", "Mico":"米科", "Moe":"阿萌", "Mortis":"莫提斯", "Mr._P":"P先生", "Nani":"纳妮",
+    "Nita":"妮塔", "Ollie":"奥利", "Otis":"奥蒂斯", "Pam":"帕姆", "Pearl":"珀尔", "Penny":"潘妮",
+    "Piper":"佩佩", "Poco":"波克", "R-T":"RT", "Rico":"瑞科", "Rosa":"罗莎", "Ruffs":"拉夫", "Sam":"山姆",
+    "Sandy":"沙迪", "Shade":"谢德", "Shelly":"雪莉", "Spike":"斯派克", "Sprout":"芽芽", "Squeak":"史魁克",
+    "Stu":"斯图", "Surge":"瑟奇", "Tara":"塔拉", "Tick":"迪克", "Willow":"薇洛"
+
+    };
+
+    let mode = "practice";
+    let current = "";
+    let currentLang = "en";
+    let errors = 0;
+    const maxErrors = 3;
+    let locked = false;
+    let challengeCorrect = 0;
+    let challengeStartTime = 0;
+
+    function populateDatalist() {
+      const datalist = document.getElementById("brawler-list");
+      datalist.innerHTML = "";
+      for (const [en, zh] of Object.entries(dict)) {
+        const opt1 = document.createElement("option");
+        opt1.value = en;
+        datalist.appendChild(opt1);
+        const opt2 = document.createElement("option");
+        opt2.value = zh;
+        datalist.appendChild(opt2);
+      }
+    }
+
+    function pickRandom() {
+      const keys = Object.keys(dict);
+      return keys[Math.floor(Math.random() * keys.length)];
+    }
+
+    async function loadAndZoom() {
+      current = pickRandom();
+      const img = new Image();
+      img.src = `${current}.png`;
+      await img.decode();
+
+      const tmp = document.createElement('canvas');
+      tmp.width = img.width;
+      tmp.height = img.height;
+      const tctx = tmp.getContext('2d');
+      tctx.drawImage(img, 0, 0);
+
+      const data = tctx.getImageData(0, 0, img.width, img.height).data;
+      const validRegions = [];
+
+      for (let y = 0; y < img.height - 30; y++) {
+        for (let x = 0; x < img.width - 30; x++) {
+          let count = 0;
+          for (let dy = 0; dy < 30; dy++) {
+            for (let dx = 0; dx < 30; dx++) {
+              const index = ((y + dy) * img.width + (x + dx)) * 4 + 3;
+              if (data[index] > 10) count++;
+            }
+          }
+          if (count >= 50) validRegions.push({x, y});
+        }
+      }
+
+      if (validRegions.length === 0) return loadAndZoom();
+
+      const region = validRegions[Math.floor(Math.random() * validRegions.length)];
+      const zoom = document.getElementById("zoom-canvas").getContext("2d");
+      zoom.clearRect(0, 0, 120, 120);
+      zoom.imageSmoothingEnabled = false;
+      zoom.drawImage(tmp, region.x, region.y, 30, 30, 0, 0, 120, 120);
+
+      document.getElementById("feedback-en").textContent = "";
+      document.getElementById("feedback-zh").textContent = "";
+      document.getElementById("guess").value = "";
+      locked = false;
+    }
+
+    function checkAnswer() {
+      if (locked) return;
+      const input = document.getElementById("guess").value.trim();
+      const matchEn = input.toLowerCase() === current.toLowerCase();
+      const matchZh = input === dict[current];
+      const correct = currentLang === "en" ? matchEn : matchZh;
+
+      locked = true;
+
+      const fbEn = document.getElementById("feedback-en");
+      const fbZh = document.getElementById("feedback-zh");
+
+      if (correct) {
+        fbEn.textContent = "Correct!";
+        fbZh.textContent = "答对了！";
+        if (mode === "challenge") {
+          challengeCorrect++;
+          setTimeout(loadAndZoom, 1000);
+        } else {
+          setTimeout(() => locked = false, 1000);
+        }
+      } else {
+        errors++;
+        fbEn.textContent = "Wrong!";
+        fbZh.textContent = "错了！";
+        document.getElementById("errors").textContent =
+          currentLang === "en" ? `Errors: ${errors}/${maxErrors}` : `错误：${errors}/${maxErrors}`;
+        if (mode === "challenge" && errors >= maxErrors) {
+          const totalTime = Math.round((Date.now() - challengeStartTime) / 1000);
+          fbEn.textContent = `Game Over! You got ${challengeCorrect} right in ${totalTime}s.`;
+          fbZh.textContent = `游戏结束！你在 ${totalTime} 秒内答对了 ${challengeCorrect} 个。`;
+          document.getElementById("guess").disabled = true;
+          document.getElementById("score").textContent = "";
+        } else if (mode === "challenge") {
+          setTimeout(loadAndZoom, 1000);
+        } else {
+          setTimeout(() => locked = false, 1000);
+        }
+      }
+
+      updateFeedbackDisplay();
+    }
+
+    function updateFeedbackDisplay() {
+      document.getElementById("feedback-en").style.display = currentLang === "en" ? "block" : "none";
+      document.getElementById("feedback-zh").style.display = currentLang === "zh" ? "block" : "none";
+    }
+
+    function startPractice() {
+      mode = "practice";
+      errors = 0;
+      document.getElementById("next-btn").style.display = "inline-block";
+      document.getElementById("errors").textContent = "";
+      document.getElementById("guess").disabled = false;
+      document.getElementById("score").textContent = "";
+      loadAndZoom();
+    }
+
+    function startChallenge() {
+      mode = "challenge";
+      errors = 0;
+      challengeCorrect = 0;
+      challengeStartTime = Date.now();
+      document.getElementById("next-btn").style.display = "none";
+      document.getElementById("errors").textContent = "";
+      document.getElementById("guess").disabled = false;
+      document.getElementById("score").textContent = "";
+      loadAndZoom();
+    }
+
+    function nextIfPractice() {
+      if (mode === "practice" && !locked) loadAndZoom();
+    }
+
+    document.getElementById("lang-toggle").addEventListener("click", () => {
+      currentLang = currentLang === "en" ? "zh" : "en";
+      document.getElementById("title").textContent =
+        currentLang === "en" ? " Guess the Brawler!" : "我是谁";
+      document.getElementById("lang-toggle").textContent =
+        currentLang === "en" ? "中文" : "English";
+      document.getElementById("Practice_button").innerHTML =
+        currentLang === "en" ? "Practice_mode" : "练习模式";
+      document.getElementById("Challenge_button").innerHTML =
+        currentLang === "en" ? "Challenge Mode" : "挑战模式";
+      document.getElementById("guess").placeholder =
+        currentLang === "en" ? "Enter name..." : "输入角色名称...";
+      updateFeedbackDisplay();
+    });
+
+    populateDatalist();
+  </script>
+</body>
+</html>
