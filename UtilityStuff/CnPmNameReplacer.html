@@ -1,158 +1,593 @@
+
 <!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>词典排序工具</title>
+    <title>英文名称替换工具</title>
+    <!-- 内嵌CSS样式确保不会丢失 -->
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
+            padding: 0;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
             color: #333;
-            text-align: center;
-            margin-bottom: 30px;
+            background: linear-gradient(135deg, #f0f4f8, #e2e8f0);
+            padding: 20px;
+            min-height: 100vh;
         }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            padding: 25px;
+        }
+        
+        .panel-content {
+            padding: 30px;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .description {
+            margin-bottom: 20px;
+            color: #4a5568;
+            line-height: 1.7;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        
         textarea {
             width: 100%;
             height: 200px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: monospace;
-            margin-bottom: 15px;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
             resize: vertical;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-family: monospace;
+            line-height: 1.5;
         }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
         button {
-            background-color: #4CAF50;
+            display: inline-block;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
             color: white;
             border: none;
-            padding: 10px 20px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 10px 5px;
+            border-radius: 8px;
             cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 5px 5px 5px 0;
         }
+        
         button:hover {
-            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
         }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-blue {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+        
+        .btn-purple {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+        
         .output-container {
+            background-color: #f8f9fa;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 150px;
             margin-top: 20px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
         }
+        
+        #output {
+            white-space: pre-wrap;
+            line-height: 1.8;
+            font-size: 16px;
+            min-height: 100px;
+            font-family: monospace;
+        }
+        
+        .counter {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            color: #7f8c8d;
+            font-size: 14px;
+            padding: 0 5px;
+        }
+        
+        .dictionary-box {
+            background: #f0f7ff;
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .dictionary-item {
+            padding: 5px;
+            border-bottom: 1px solid #e1e5eb;
+            font-family: monospace;
+        }
+        
+        .dictionary-item:nth-child(odd) {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
         .instructions {
-            background-color: #e7f3fe;
-            border-left: 6px solid #2196F3;
-            padding: 10px 15px;
+            background: #fff9db;
+            border-left: 4px solid #ffd43b;
+            padding: 15px;
             margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .instructions h3 {
+            color: #e67700;
+            margin-top: 0;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .tab-container {
+            margin-top: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e1e5eb;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 25px;
+            cursor: pointer;
+            background: #f1f5f9;
+            border: none;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: #4361ee;
+            color: white;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .example {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+        
+        .example-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .highlight {
+            background-color: #fff9db;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .feature {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 3px solid #4361ee;
+        }
+        
+        .feature h4 {
+            margin-bottom: 8px;
+            color: #2c3e50;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>词典排序工具</h1>
-        
-        <div class="instructions">
-            <h3>使用说明</h3>
-            <p>输入格式：JavaScript对象格式的词典（每行一个词条）</p>
-            <p>示例：<br>
-                "King's Rock": "王者之证",<br>
-                "Poke Ball": "精灵球",<br>
-                "Stick": "大葱"
-            </p>
+        <!-- 替换工具面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h1>英文名称替换工具</h1>
+                <p>智能识别英文术语并替换为中文翻译</p>
+            </div>
+            <div class="panel-content">
+                <div class="input-group">
+                    <label for="input">输入英文文本：</label>
+                    <textarea id="input" placeholder="例如：Lustrous Globe and Air Balloon, Heavy-Duty Boots, King's Rock...">Popular items: Heavy-Duty Boots, King's Rock, Air Balloon
+Pokemon-specific items: Stick, Leek
+Other: Never-Melt Ice, Booster Energy</textarea>
+                </div>
+                
+                <button onclick="replaceText()">转换文本</button>
+                <button class="btn-blue" onclick="clearText()">清空输入</button>
+                
+                <div class="output-container">
+                    <h3>输出结果：</h3>
+                    <div id="output">转换结果将显示在这里...</div>
+                </div>
+                
+                <div class="counter">
+                    <div>输入字符数: <span id="charCount">0</span></div>
+                    <div>替换次数: <span id="replaceCount">0</span></div>
+                    <div>词典条目: <span id="dictCount">0</span></div>
+                </div>
+                
+                <div class="instructions">
+                    <h3>使用说明</h3>
+                    <ul>
+                        <li>在输入框中粘贴或输入英文文本</li>
+                        <li>点击<span class="highlight">转换文本</span>按钮进行替换</li>
+                        <li>替换时会检测单词边界（空格、标点或文本边界）</li>
+                        <li>多词短语会优先处理（如"Heavy-Duty Boots"）</li>
+                    </ul>
+                </div>
+                
+                <h3>当前词典内容：</h3>
+                <div class="dictionary-box" id="dictionaryList">
+                    <!-- 词典内容将通过JS动态生成 -->
+                </div>
+            </div>
         </div>
         
-        <textarea id="dictInput" placeholder="在此粘贴您的词典...">
-"King's Rock": "王者之证",
-"Poke Ball": "精灵球",
-"Stick": "大葱",
-"Heavy-Duty Boots": "厚底靴",
-"Leek": "大葱",
-"Ability Shield": "特性护具",
-"Auspicious Armor": "庆祝之铠"</textarea>
-        
-        <button onclick="sortDictionary()">排序词典</button>
-        <button onclick="copySortedDict()">复制结果</button>
-        <button onclick="clearText()">清空输入</button>
-        
-        <div class="output-container">
-            <h3>排序结果：</h3>
-            <textarea id="dictOutput" readonly>排序后的词典将显示在这里...</textarea>
+        <!-- 词典排序工具面板 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h1>词典排序工具</h1>
+                <p>整理并排序词典数据</p>
+            </div>
+            <div class="panel-content">
+                <div class="input-group">
+                    <label for="dictInput">输入词典数据（每行一个词条，格式：英文=中文）：</label>
+                    <textarea id="dictInput" placeholder="例如：
+Items=对战用道具
+Popular items=常用道具
+King's Rock=王者之证
+Heavy-Duty Boots=厚底靴
+...">Items=对战用道具
+Popular items=常用道具
+Pokemon-specific items=特定宝可梦使用的道具
+Usually useless items=多数情况无用的道具
+Useless items=无对战用途道具
+Mail=邮件
+Never-Melt Ice=不融冰
+King's Rock=王者之证
+Poke Ball=精灵球
+Stick=大葱
+Heavy-Duty Boots=厚底靴
+Leek=大葱
+Ability Shield=特性护具
+Auspicious Armor=庆祝之铠
+Booster Energy=驱劲能量
+Air Balloon=气球
+Lustrous Globe=玉璧
+Assault Vest=突击背心
+Focus Sash=气势披带
+Life Orb=生命宝珠
+Leftovers=吃剩的东西</textarea>
+                </div>
+                
+                <button class="btn-purple" onclick="sortDictionary()">排序词典</button>
+                <button class="btn-blue" onclick="copySortedDict()">复制结果</button>
+                
+                <div class="output-container">
+                    <h3>排序结果：</h3>
+                    <div id="dictOutput">排序后的词典将显示在这里...</div>
+                </div>
+                
+                <div class="instructions">
+                    <h3>操作指南</h3>
+                    <ul>
+                        <li>在输入框中输入词典数据（每行一个词条）</li>
+                        <li>格式为：<span class="highlight">英文=中文</span></li>
+                        <li>点击<span class="highlight">排序词典</span>进行处理</li>
+                        <li>排序规则：多词短语优先（按长度降序）</li>
+                        <li>使用<span class="highlight">复制结果</span>按钮复制排序后的词典</li>
+                    </ul>
+                </div>
+                
+                <div class="example">
+                    <div class="example-title">排序示例：</div>
+                    <p>输入：<br>King's Rock=王者之证<br>Heavy-Duty Boots=厚底靴<br>Stick=大葱</p>
+                    <p>输出：<br>"Heavy-Duty Boots": "厚底靴",<br>"King's Rock": "王者之证",<br>"Stick": "大葱",</p>
+                </div>
+            </div>
         </div>
     </div>
-
+    
     <script>
+        // 词典数据
+        const mapping = {
+            "Items": "对战用道具",
+            "Popular items": "常用道具",
+            "Pokemon-specific items": "特定宝可梦使用的道具",
+            "Usually useless items": "多数情况无用的道具",
+            "Useless items": "无对战用途道具",
+            "Mail": "邮件",
+            "Never-Melt Ice": "不融冰",
+            "King's Rock": "王者之证",
+            "Poke Ball": "精灵球",
+            "Stick": "大葱",
+            "Heavy-Duty Boots": "厚底靴",
+            "Leek": "大葱",
+            "Ability Shield": "特性护具",
+            "Auspicious Armor": "庆祝之铠",
+            "Booster Energy": "驱劲能量",
+            "Air Balloon": "气球",
+            "Lustrous Globe": "玉璧",
+            "Assault Vest": "突击背心",
+            "Focus Sash": "气势披带",
+            "Life Orb": "生命宝珠",
+            "Leftovers": "吃剩的东西"
+        };
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharCount();
+            renderDictionary();
+            document.getElementById('dictCount').textContent = Object.keys(mapping).length;
+        });
+        
+        // 渲染词典列表
+        function renderDictionary() {
+            const container = document.getElementById('dictionaryList');
+            container.innerHTML = '';
+            
+            // 获取短语和单词
+            const phrases = Object.keys(mapping).filter(key => key.includes(' '));
+            const words = Object.keys(mapping).filter(key => !key.includes(' '));
+            
+            // 按长度降序排列短语
+            phrases.sort((a, b) => b.length - a.length);
+            
+            // 添加短语
+            phrases.forEach(phrase => {
+                const item = document.createElement('div');
+                item.className = 'dictionary-item';
+                item.textContent = `"${phrase}" → "${mapping[phrase]}"`;
+                container.appendChild(item);
+            });
+            
+            // 添加单词
+            words.forEach(word => {
+                const item = document.createElement('div');
+                item.className = 'dictionary-item';
+                item.textContent = `"${word}" → "${mapping[word]}"`;
+                container.appendChild(item);
+            });
+        }
+        
+        // 转义正则特殊字符
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // 替换文本函数
+        function replaceText() {
+            let text = document.getElementById("input").value;
+            let replaceCount = 0;
+            
+            // 更新字符计数
+            document.getElementById("charCount").textContent = text.length;
+            
+            // 获取短语和单词
+            const phrases = Object.keys(mapping).filter(key => key.includes(' '));
+            const words = Object.keys(mapping).filter(key => !key.includes(' '));
+            
+            // 按长度降序排列短语
+            phrases.sort((a, b) => b.length - a.length);
+            
+            // 先处理多词短语
+            for (const phrase of phrases) {
+                const escapedPhrase = escapeRegExp(phrase);
+                // 匹配整个短语，前后有边界（空格、标点、开头、结尾）
+                const regex = new RegExp(`(^|\\s|[.,!?;:()])${escapedPhrase}(?=\\s|[.,!?;:]|$)`, 'gi');
+                const matches = text.match(regex);
+                
+                if (matches) {
+                    replaceCount += matches.length;
+                    text = text.replace(regex, `$1${mapping[phrase]}`);
+                }
+            }
+            
+            // 处理单个单词
+            for (const word of words) {
+                const escapedWord = escapeRegExp(word);
+                // 匹配整个单词，前后有边界
+                const regex = new RegExp(`\\b${escapedWord}\\b`, 'gi');
+                const matches = text.match(regex);
+                
+                if (matches) {
+                    replaceCount += matches.length;
+                    text = text.replace(regex, mapping[word]);
+                }
+            }
+            
+            document.getElementById("output").textContent = text || "（无内容）";
+            document.getElementById("replaceCount").textContent = replaceCount;
+        }
+        
+        // 清空输入
+        function clearText() {
+            document.getElementById("input").value = "";
+            document.getElementById("output").textContent = "转换结果将显示在这里...";
+            document.getElementById("charCount").textContent = "0";
+            document.getElementById("replaceCount").textContent = "0";
+        }
+        
+        // 更新字符计数
+        function updateCharCount() {
+            const text = document.getElementById("input").value;
+            document.getElementById("charCount").textContent = text.length;
+        }
+        
+        // 添加输入事件监听器
+        document.getElementById("input").addEventListener('input', updateCharCount);
+        
+        // 词典排序功能
         function sortDictionary() {
             const input = document.getElementById("dictInput").value.trim();
             if (!input) {
-                document.getElementById("dictOutput").value = "请输入词典数据";
+                document.getElementById("dictOutput").textContent = "请输入词典数据";
                 return;
             }
             
-            try {
-                // 尝试解析为JSON对象
-                const dict = JSON.parse(`{${input}}`);
+            // 解析输入
+            const lines = input.split('\n');
+            const dict = {};
+            
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
                 
-                // 分离短语和单词
-                const phrases = Object.keys(dict).filter(key => key.includes(' '));
-                const words = Object.keys(dict).filter(key => !key.includes(' '));
+                const separatorIndex = line.indexOf('=');
+                if (separatorIndex === -1) continue;
                 
-                // 短语按长度降序排序
-                phrases.sort((a, b) => b.length - a.length);
+                const key = line.substring(0, separatorIndex).trim();
+                const value = line.substring(separatorIndex + 1).trim();
                 
-                // 单词按字母顺序排序
-                words.sort();
-                
-                // 合并排序后的键
-                const sortedKeys = [...phrases, ...words];
-                
-                // 生成排序后的词典字符串
-                let result = "";
-                sortedKeys.forEach(key => {
-                    result += `"${key}": "${dict[key]}",\n`;
-                });
-                
-                document.getElementById("dictOutput").value = result || "排序结果为空";
-            } catch (e) {
-                document.getElementById("dictOutput").value = "输入格式错误，请检查词典格式\n错误信息: " + e.message;
+                if (key && value) {
+                    dict[key] = value;
+                }
             }
+            
+            // 分离短语和单词
+            const phrases = Object.keys(dict).filter(key => key.includes(' '));
+            const words = Object.keys(dict).filter(key => !key.includes(' '));
+            
+            // 短语按长度降序排序
+            phrases.sort((a, b) => b.length - a.length);
+            
+            // 单词按字母顺序排序
+            words.sort();
+            
+            // 合并排序后的键
+            const sortedKeys = [...phrases, ...words];
+            
+            // 生成排序后的词典字符串
+            let result = "";
+            sortedKeys.forEach(key => {
+                result += `"${key}": "${dict[key]}",\n`;
+            });
+            
+            document.getElementById("dictOutput").textContent = result || "排序结果为空";
         }
         
+        // 复制排序后的词典
         function copySortedDict() {
             const output = document.getElementById("dictOutput");
-            output.select();
+            const textarea = document.createElement('textarea');
+            textarea.value = output.textContent;
+            document.body.appendChild(textarea);
+            textarea.select();
             document.execCommand('copy');
+            document.body.removeChild(textarea);
             
             // 显示复制成功消息
-            const originalText = output.value;
-            output.value = "✓ 已复制到剪贴板！";
+            const originalText = output.textContent;
+            output.textContent = "✓ 已复制到剪贴板！";
             setTimeout(() => {
-                output.value = originalText;
+                output.textContent = originalText;
             }, 2000);
-        }
-        
-        function clearText() {
-            document.getElementById("dictInput").value = "";
-            document.getElementById("dictOutput").value = "排序后的词典将显示在这里...";
         }
     </script>
 </body>
