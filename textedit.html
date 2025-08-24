@@ -1,0 +1,618 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻量级多语言文本编辑器</title>
+    <style>
+    
+    body {
+        font-family: monospace;
+        margin: 0;
+        padding: 10px;
+        background: #f5f5f5;
+    }
+    .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+    }
+    .toolbar {
+        margin-bottom: 10px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    button, input, select {
+        padding: 5px 10px;
+        font-family: inherit;
+    }
+    #editor {
+        flex-grow: 1;
+        width: 100%;
+        padding: 10px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        background: white;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: none;
+        overflow: auto;
+    }
+    .replace-section {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        margin-top: 5px;
+    }
+    .regex-options {
+        display: flex;
+        gap: 10px;
+        margin-top: 5px;
+        align-items: center;
+    }
+    .status {
+        margin-top: 5px;
+        color: #666;
+        font-size: 12px;
+    }
+    .file-save {
+        display: flex;
+        gap: 5px;
+        margin-top: 5px;
+    }
+    .nowrap {
+        white-space: pre;
+    }
+    .wrap {
+        white-space: pre-wrap;
+    }
+    .language-selector {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .regex-help {
+    background: white;
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-top: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.regex-help h3 {
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.regex-help ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.regex-help li {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.regex-help code {
+    font-family: monospace;
+    background: #f5f5f5;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="language-selector">
+        <select id="languageSelect">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="es">Español</option>
+        </select>
+    </div>
+    
+    <div class="toolbar">
+        <button id="findBtn">查找</button>
+        <button id="findNextBtn">查找下一个</button>
+        
+        <div class="replace-section">
+            <input type="text" id="findInput" placeholder="查找内容">
+            <input type="text" id="replaceInput" placeholder="替换为">
+            <button id="replaceBtn">替换</button>
+            <button id="replaceAllBtn">全部替换</button>
+        </div>
+        
+        <div class="regex-options">
+            <label><input type="checkbox" id="regexCheckbox"> 正则表达式</label>
+            <label><input type="checkbox" id="caseCheckbox"> 区分大小写</label>
+            <label><input type="checkbox" id="globalCheckbox" checked> 全局匹配</label>
+            <label><input type="checkbox" id="wrapCheckbox" checked> 自动换行</label>
+        </div>
+        
+        <div class="file-save">
+            <input type="text" id="filename" placeholder="文件名" value="text">
+            <select id="filetype">
+                <option value=".txt">.txt</option>
+                <option value=".html">.html</option>
+                <option value=".js">.js</option>
+                <option value=".json">.json</option>
+                <option value=".csv">.csv</option>
+                <option value=".md">.md</option>
+            </select>
+            <button id="saveBtn">保存文件</button>
+        </div>
+        
+        <button id="regexHelpBtn">正则表达式帮助</button>
+    </div>
+    
+    <textarea id="editor" spellcheck="false" class="wrap"></textarea>
+    
+    <div class="status" id="status"></div>
+    
+    <div id="regexHelpPanel" class="regex-help" style="display:none;">
+    <h3>正则表达式参考</h3>
+    <ul>
+        <!-- 这里的内容将由JavaScript动态生成 -->
+    </ul>
+</div>
+</div>
+    <script>
+// 多语言翻译
+const translations = {
+    zh: {
+        find: "查找",
+        findNext: "查找下一个",
+        findPlaceholder: "查找内容",
+        replace: "替换",
+        replacePlaceholder: "替换为",
+        replaceAll: "全部替换",
+        regex: "正则表达式",
+        caseSensitive: "区分大小写",
+        globalMatch: "全局匹配",
+        wordWrap: "自动换行",
+        filename: "文件名",
+        save: "保存文件",
+        regexHelp: "正则表达式帮助",
+        regexHelpTitle: "正则表达式参考",
+        statusReady: "就绪",
+        statusFind: "请输入查找内容",
+        statusNotFound: "未找到匹配项",
+        statusFound: "找到匹配项",
+        statusReplaced: "已替换当前匹配项",
+        statusReplacedAll: "已完成 {count} 处替换",
+        statusSaved: "文件已保存为 {filename}",
+        regexItems: [
+            { pattern: ".", description: "匹配除换行符外的任意单个字符" },
+            { pattern: "\\d", description: "匹配数字（0-9）" },
+            { pattern: "\\w", description: "匹配字母、数字或下划线" },
+            { pattern: "\\s", description: "匹配空白字符（空格、制表符等）" },
+            { pattern: "[abc]", description: "匹配括号内的任意字符" },
+            { pattern: "[^abc]", description: "匹配不在括号内的任意字符" },
+            { pattern: "^", description: "匹配行的开始位置" },
+            { pattern: "$", description: "匹配行的结束位置" },
+            { pattern: "*", description: "匹配前面的元素零次或多次" },
+            { pattern: "+", description: "匹配前面的元素一次或多次" },
+            { pattern: "?", description: "匹配前面的元素零次或一次" },
+            { pattern: "{n}", description: "匹配前面的元素恰好n次" }
+        ]
+    },
+    en: {
+        find: "Find",
+        findNext: "Find next",
+        findPlaceholder: "Search text",
+        replace: "Replace",
+        replacePlaceholder: "Replace with",
+        replaceAll: "Replace all",
+        regex: "Regex",
+        caseSensitive: "Case sensitive",
+        globalMatch: "Global match",
+        wordWrap: "Word wrap",
+        filename: "Filename",
+        save: "Save file",
+        regexHelp: "Regex help",
+        regexHelpTitle: "Regex Quick Reference",
+        statusReady: "Ready",
+        statusFind: "Please enter search text",
+        statusNotFound: "No matches found",
+        statusFound: "Match found",
+        statusReplaced: "Match replaced",
+        statusReplacedAll: "Replaced {count} occurrences",
+        statusSaved: "File saved as {filename}",
+        regexItems: [
+            { pattern: ".", description: "Matches any single character except line breaks" },
+            { pattern: "\\d", description: "Matches any digit (0-9)" },
+            { pattern: "\\w", description: "Matches any word character (letter, number, underscore)" },
+            { pattern: "\\s", description: "Matches any whitespace character" },
+            { pattern: "[abc]", description: "Matches any character in the brackets" },
+            { pattern: "[^abc]", description: "Matches any character not in the brackets" },
+            { pattern: "^", description: "Matches start of a line" },
+            { pattern: "$", description: "Matches end of a line" },
+            { pattern: "*", description: "Matches preceding element zero or more times" },
+            { pattern: "+", description: "Matches preceding element one or more times" },
+            { pattern: "?", description: "Matches preceding element zero or one time" },
+            { pattern: "{n}", description: "Matches preceding element exactly n times" }
+        ]
+    },
+    ja: {
+        find: "検索",
+        findNext: "次を検索",
+        findPlaceholder: "検索テキスト",
+        replace: "置換",
+        replacePlaceholder: "置換後のテキスト",
+        replaceAll: "すべて置換",
+        regex: "正規表現",
+        caseSensitive: "大文字小文字を区別",
+        globalMatch: "グローバルマッチ",
+        wordWrap: "自動折り返し",
+        filename: "ファイル名",
+        save: "ファイル保存",
+        regexHelp: "正規表現ヘルプ",
+        regexHelpTitle: "正規表現クイックリファレンス",
+        statusReady: "準備完了",
+        statusFind: "検索テキストを入力してください",
+        statusNotFound: "一致する項目が見つかりません",
+        statusFound: "一致項目が見つかりました",
+        statusReplaced: "一致項目を置換しました",
+        statusReplacedAll: "{count} 箇所を置換しました",
+        statusSaved: "{filename} として保存しました",
+        regexItems: [
+            { pattern: ".", description: "改行を除く任意の1文字にマッチ" },
+            { pattern: "\\d", description: "数字(0-9)にマッチ" },
+            { pattern: "\\w", description: "単語文字(英数字、アンダースコア)にマッチ" },
+            { pattern: "\\s", description: "空白文字にマッチ" },
+            { pattern: "[abc]", description: "括弧内の任意の文字にマッチ" },
+            { pattern: "[^abc]", description: "括弧内にない任意の文字にマッチ" },
+            { pattern: "^", description: "行の先頭にマッチ" },
+            { pattern: "$", description: "行の末尾にマッチ" },
+            { pattern: "*", description: "直前の要素の0回以上の繰り返しにマッチ" },
+            { pattern: "+", description: "直前の要素の1回以上の繰り返しにマッチ" },
+            { pattern: "?", description: "直前の要素の0回または1回の繰り返しにマッチ" },
+            { pattern: "{n}", description: "直前の要素のちょうどn回の繰り返しにマッチ" }
+        ]
+    },
+    es: {
+        find: "Buscar",
+        findNext: "Buscar siguiente",
+        findPlaceholder: "Texto a buscar",
+        replace: "Reemplazar",
+        replacePlaceholder: "Reemplazar con",
+        replaceAll: "Reemplazar todo",
+        regex: "Expresión regular",
+        caseSensitive: "Distinguir mayúsculas",
+        globalMatch: "Coincidencia global",
+        wordWrap: "Ajuste de línea",
+        filename: "Nombre de archivo",
+        save: "Guardar archivo",
+        regexHelp: "Ayuda de regex",
+        regexHelpTitle: "Referencia Rápida de Expresiones Regulares",
+        statusReady: "Listo",
+        statusFind: "Por favor ingrese texto a buscar",
+        statusNotFound: "No se encontraron coincidencias",
+        statusFound: "Coincidencia encontrada",
+        statusReplaced: "Coincidencia reemplazada",
+        statusReplacedAll: "Reemplazadas {count} ocurrencias",
+        statusSaved: "Archivo guardado como {filename}",
+        regexItems: [
+            { pattern: ".", description: "Coincide con cualquier carácter excepto saltos de línea" },
+            { pattern: "\\d", description: "Coincide con cualquier dígito (0-9)" },
+            { pattern: "\\w", description: "Coincide con cualquier carácter alfanumérico o guión bajo" },
+            { pattern: "\\s", description: "Coincide con cualquier espacio en blanco" },
+            { pattern: "[abc]", description: "Coincide con cualquier carácter dentro de los corchetes" },
+            { pattern: "[^abc]", description: "Coincide con cualquier carácter fuera de los corchetes" },
+            { pattern: "^", description: "Coincide con el inicio de una línea" },
+            { pattern: "$", description: "Coincide con el final de una línea" },
+            { pattern: "*", description: "Coincide con el elemento precedente cero o más veces" },
+            { pattern: "+", description: "Coincide con el elemento precedente una o más veces" },
+            { pattern: "?", description: "Coincide con el elemento precedente cero o una vez" },
+            { pattern: "{n}", description: "Coincide con el elemento precedente exactamente n veces" }
+        ]
+    }
+};
+
+// DOM 元素
+const editor = document.getElementById('editor');
+const findInput = document.getElementById('findInput');
+const replaceInput = document.getElementById('replaceInput');
+const regexCheckbox = document.getElementById('regexCheckbox');
+const caseCheckbox = document.getElementById('caseCheckbox');
+const globalCheckbox = document.getElementById('globalCheckbox');
+const wrapCheckbox = document.getElementById('wrapCheckbox');
+const filenameInput = document.getElementById('filename');
+const filetypeSelect = document.getElementById('filetype');
+const status = document.getElementById('status');
+const languageSelect = document.getElementById('languageSelect');
+const regexHelpBtn = document.getElementById('regexHelpBtn');
+const regexHelpPanel = document.getElementById('regexHelpPanel');
+
+// 搜索状态变量
+let lastSearchText = '';
+let lastRegex = null;
+let lastMatchIndex = 0;
+
+// 初始化
+function init() {
+    // 设置语言
+    const savedLang = localStorage.getItem('editorLanguage') || 'zh';
+    languageSelect.value = savedLang;
+    updateLanguage(savedLang);
+    
+    // 加载保存的内容
+    const savedContent = localStorage.getItem('editorContent');
+    if (savedContent) {
+        editor.value = savedContent;
+    }
+    
+    // 聚焦编辑器
+    editor.focus();
+}
+
+// 更新界面语言
+function updateLanguage(lang) {
+    const langData = translations[lang] || translations.zh;
+    
+    // 更新按钮文本
+    document.getElementById('findBtn').textContent = langData.find;
+    document.getElementById('findNextBtn').textContent = langData.findNext;
+    document.getElementById('replaceBtn').textContent = langData.replace;
+    document.getElementById('replaceAllBtn').textContent = langData.replaceAll;
+    document.getElementById('saveBtn').textContent = langData.save;
+    regexHelpBtn.textContent = langData.regexHelp;
+    
+    // 更新占位符
+    findInput.placeholder = langData.findPlaceholder;
+    replaceInput.placeholder = langData.replacePlaceholder;
+    filenameInput.placeholder = langData.filename;
+    
+    // 更新选项标签
+    document.querySelector('label[for="regexCheckbox"]').textContent = langData.regex;
+    document.querySelector('label[for="caseCheckbox"]').textContent = langData.caseSensitive;
+    document.querySelector('label[for="globalCheckbox"]').textContent = langData.globalMatch;
+    document.querySelector('label[for="wrapCheckbox"]').textContent = langData.wordWrap;
+    
+    // 更新正则表达式帮助
+    regexHelpPanel.querySelector('h3').textContent = langData.regexHelpTitle;
+    const regexList = regexHelpPanel.querySelector('ul');
+    regexList.innerHTML = '';
+    
+    langData.regexItems.forEach(item => {
+        const li = document.createElement('li');
+        li.innerHTML = `<code>${item.pattern}</code> - ${item.description}`;
+        regexList.appendChild(li);
+    });
+    
+    // 更新状态
+    status.textContent = langData.statusReady;
+    
+    // 保存语言设置
+    localStorage.setItem('editorLanguage', lang);
+}
+
+// 构建正则表达式
+function buildRegex(pattern, forceGlobal) {
+    if (!pattern) return null;
+    
+    let flags = 'g';
+    if (!caseCheckbox.checked) flags += 'i';
+    if (!forceGlobal && !globalCheckbox.checked) flags = flags.replace('g', '');
+    
+    try {
+        if (regexCheckbox.checked) {
+            return new RegExp(pattern, flags);
+        } else {
+            // 转义正则特殊字符
+            const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return new RegExp(escaped, flags);
+        }
+    } catch (e) {
+        const lang = languageSelect.value;
+        status.textContent = `${translations[lang].regex} ${translations[lang].statusFind}: ${e.message}`;
+        return null;
+    }
+}
+
+// 查找文本
+function findText(initialSearch = true) {
+    const lang = languageSelect.value;
+    const text = editor.value;
+    const searchText = findInput.value;
+    
+    if (!searchText) {
+        status.textContent = translations[lang].statusFind;
+        return;
+    }
+    
+    // 如果是新的搜索，重置状态
+    if (initialSearch || searchText !== lastSearchText) {
+        lastSearchText = searchText;
+        lastMatchIndex = 0;
+        lastRegex = buildRegex(searchText, false);
+        if (!lastRegex) return;
+    }
+    
+    // 从当前光标位置开始搜索
+    lastRegex.lastIndex = lastMatchIndex;
+    const match = lastRegex.exec(text);
+    
+    if (match) {
+        const matchStart = match.index;
+        const matchEnd = matchStart + match[0].length;
+        
+        // 选择匹配的文本
+        editor.focus();
+        editor.setSelectionRange(matchStart, matchEnd);
+        
+        // 滚动到匹配位置
+        const lineHeight = parseInt(getComputedStyle(editor).lineHeight) || 20;
+        const lines = editor.value.substring(0, matchStart).split('\n').length - 1;
+        editor.scrollTop = lines * lineHeight - editor.clientHeight / 2;
+        
+        // 更新状态
+        lastMatchIndex = matchEnd;
+        status.textContent = translations[lang].statusFound;
+    } else {
+        // 没找到，从头开始
+        if (lastMatchIndex > 0) {
+            lastMatchIndex = 0;
+            findText(false);
+        } else {
+            status.textContent = translations[lang].statusNotFound;
+        }
+    }
+}
+
+// 替换文本
+function replaceText(all = false) {
+    const lang = languageSelect.value;
+    const text = editor.value;
+    const searchText = findInput.value;
+    const replaceText = replaceInput.value;
+    
+    if (!searchText) {
+        status.textContent = translations[lang].statusFind;
+        return;
+    }
+    
+    const regex = buildRegex(searchText, all);
+    if (!regex) return;
+    
+    if (all) {
+        // 全部替换
+        const newText = text.replace(regex, replaceText);
+        if (newText !== text) {
+            editor.value = newText;
+            
+            // 计算替换次数
+            let count = 0;
+            const tempRegex = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : regex.flags + 'g');
+            const matches = text.match(tempRegex);
+            if (matches) count = matches.length;
+            
+            status.textContent = translations[lang].statusReplacedAll.replace('{count}', count);
+            
+            // 保存内容
+            saveContent();
+        } else {
+            status.textContent = translations[lang].statusNotFound;
+        }
+    } else {
+        // 单次替换
+        if (editor.selectionStart !== editor.selectionEnd) {
+            const selectedText = editor.value.substring(editor.selectionStart, editor.selectionEnd);
+            if (regex.test(selectedText)) {
+                const beforeText = editor.value.substring(0, editor.selectionStart);
+                const afterText = editor.value.substring(editor.selectionEnd);
+                editor.value = beforeText + replaceText + afterText;
+                
+                // 设置光标位置
+                const newPos = editor.selectionStart + replaceText.length;
+                editor.setSelectionRange(newPos, newPos);
+                
+                status.textContent = translations[lang].statusReplaced;
+                
+                // 保存内容
+                saveContent();
+                return;
+            }
+        }
+        
+        // 如果当前选区不匹配，尝试查找下一个
+        findText();
+    }
+}
+
+// 保存内容
+function saveContent() {
+    localStorage.setItem('editorContent', editor.value);
+}
+
+// 保存文件
+function saveFile() {
+    const lang = languageSelect.value;
+    const content = editor.value;
+    const filename = filenameInput.value.trim() || 'document';
+    const extension = filetypeSelect.value;
+    const fullFilename = filename + extension;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fullFilename;
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    status.textContent = translations[lang].statusSaved.replace('{filename}', fullFilename);
+}
+
+// 事件监听器
+editor.addEventListener('input', saveContent);
+
+wrapCheckbox.addEventListener('change', () => {
+    editor.classList.toggle('nowrap', !wrapCheckbox.checked);
+    editor.classList.toggle('wrap', wrapCheckbox.checked);
+});
+
+document.getElementById('findBtn').addEventListener('click', () => findText(true));
+document.getElementById('findNextBtn').addEventListener('click', () => findText(false));
+document.getElementById('replaceBtn').addEventListener('click', () => replaceText(false));
+document.getElementById('replaceAllBtn').addEventListener('click', () => replaceText(true));
+document.getElementById('saveBtn').addEventListener('click', saveFile);
+regexHelpBtn.addEventListener('click', () => {
+    regexHelpPanel.style.display = regexHelpPanel.style.display === 'none' ? 'block' : 'none';
+});
+
+languageSelect.addEventListener('change', (e) => {
+    updateLanguage(e.target.value);
+});
+
+// 快捷键支持
+editor.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+            case 'f':
+                e.preventDefault();
+                findInput.focus();
+                findInput.select();
+                break;
+            case 'h':
+                e.preventDefault();
+                findInput.focus();
+                findInput.select();
+                break;
+            case 's':
+                e.preventDefault();
+                saveFile();
+                break;
+            case 'w':
+                e.preventDefault();
+                wrapCheckbox.checked = !wrapCheckbox.checked;
+                wrapCheckbox.dispatchEvent(new Event('change'));
+                break;
+        }
+    } else if (e.key === 'F3') {
+        e.preventDefault();
+        if (lastRegex) {
+            findText(false);
+        }
+    }
+});
+
+// 初始化应用
+init();
+    </script>
+</body>
+</html>
