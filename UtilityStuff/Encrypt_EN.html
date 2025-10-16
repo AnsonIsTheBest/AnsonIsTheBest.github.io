@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encrypt with custom key</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animate-bounce {
+            animation: bounce 0.3s ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md flex flex-col">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-4">Encrypt with custom key</h2>
+        <label for="key" class="block text-sm font-medium text-gray-700">Enter Key：</label>
+        <input type="text" id="key" value="xqc_lmfao" class="mt-1 p-2 w-full border rounded-md focus:ring-2 focus:ring-blue-500" placeholder="Enter your key">
+        <label for="inputText" class="block text-sm font-medium text-gray-700 mt-4">Enter text：</label>
+        <textarea id="inputText" class="mt-1 p-2 w-full border rounded-md focus:ring-2 focus:ring-blue-500 max-h-40 overflow-y-auto" placeholder="Enter your text to be Encryted/Decrypted" rows="4"></textarea>
+        <div class="flex space-x-2 mt-4">
+            <button onclick="encrypt()" class="flex-1 bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition">Encrypt</button>
+            <button onclick="decrypt()" class="flex-1 bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition">Decrypt</button>
+        </div>
+        <button onclick="copyResult()" class="w-full mt-2 bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 transition">Copy result</button>
+        <div id="error" class="text-red-500 text-sm mt-2"></div>
+        <div id="result" class="mt-2 p-3 bg-blue-50 rounded-md text-gray-800"></div>
+        <!-- <div id="debug" class="mt-2 p-3 bg-gray-50 rounded-md text-gray-600 text-sm"></div> -->
+    </div>
+
+
+    <script>
+        function getUniqueChars(str) {
+            return [...new Set(str.split(''))];
+        }
+
+
+        function validateKey(key) {
+            if (!key) return "Key can't be empty";
+            const uniqueChars = getUniqueChars(key);
+            if (uniqueChars.length < 2) return "The key have to contain at least 2 different characters";
+            return "";
+        }
+
+
+        function asciiToBaseN(code, base, digits) {
+            if (code === 0) return digits[0];
+            let result = "";
+            while (code > 0) {
+                result = digits[code % base] + result;
+                code = Math.floor(code / base);
+            }
+            return result;
+        }
+
+
+        function baseNToAscii(str, base, digits) {
+            let code = 0;
+            for (let char of str) {
+                const index = digits.indexOf(char);
+                if (index === -1) return NaN;
+                code = code * base + index;
+            }
+            return code;
+        }
+
+
+        function encrypt() {
+            const key = document.getElementById('key').value;
+            const input = document.getElementById('inputText').value;
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+            // const debugDiv = document.getElementById('debug');
+
+
+            const error = validateKey(key);
+            if (error) {
+                errorDiv.textContent = error;
+                resultDiv.textContent = "";
+                // debugDiv.textContent = "";
+                return;
+            }
+
+
+            errorDiv.textContent = "";
+            const uniqueChars = getUniqueChars(key);
+            const base = uniqueChars.length;
+            let encrypted = "";
+            // let debugInfo = [];
+
+
+            for (let char of input) {
+                const code = char.codePointAt(0);
+                const encoded = asciiToBaseN(code, base, uniqueChars);
+                encrypted += encoded + " ";
+                // debugInfo.push(`字符: ${char} (Unicode: ${code}) -> 加密: ${encoded}`);
+            }
+
+
+            resultDiv.textContent = "加密结果：" + encrypted.trim();
+            // debugDiv.textContent = "调试信息：\n" + debugInfo.join("\n");
+            resultDiv.classList.add('animate-bounce');
+            setTimeout(() => resultDiv.classList.remove('animate-bounce'), 300);
+        }
+
+
+        function decrypt() {
+            const key = document.getElementById('key').value;
+            const input = document.getElementById('inputText').value;
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+            // const debugDiv = document.getElementById('debug');
+
+
+            const error = validateKey(key);
+            if (error) {
+                errorDiv.textContent = error;
+                resultDiv.textContent = "";
+                // debugDiv.textContent = "";
+                return;
+            }
+
+
+            errorDiv.textContent = "";
+            const uniqueChars = getUniqueChars(key);
+            const base = uniqueChars.length;
+            const segments = input.trim().split(" ");
+            let decrypted = "";
+            // let debugInfo = [];
+
+
+            for (let segment of segments) {
+                if (segment) {
+                    const code = baseNToAscii(segment, base, uniqueChars);
+                    if (isNaN(code)) {
+                        errorDiv.textContent = `Invalid input：${segment}`;
+                        resultDiv.textContent = "";
+                        // debugDiv.textContent = "";
+                        return;
+                    }
+                    decrypted += String.fromCodePoint(code);
+                    // debugInfo.push(`加密段: ${segment} -> Unicode: ${code} -> 字符: ${String.fromCodePoint(code)}`);
+                }
+            }
+
+
+            resultDiv.textContent = "解密结果：" + decrypted;
+            // debugDiv.textContent = "调试信息：\n" + debugInfo.join("\n");
+            resultDiv.classList.add('animate-bounce');
+            setTimeout(() => resultDiv.classList.remove('animate-bounce'), 300);
+        }
+
+
+        function copyResult() {
+            const resultDiv = document.getElementById('result');
+            const text = resultDiv.textContent.replace(/^(Result|Result)：/, '');
+            navigator.clipboard.writeText(text).then(() => {
+                resultDiv.textContent = "Copied！";
+                resultDiv.classList.add('animate-bounce');
+                setTimeout(() => {
+                    resultDiv.textContent = text ? (text.startsWith('Result') ? text : `Result：${text}`) : '';
+                    resultDiv.classList.remove('animate-bounce');
+                }, 1000);
+            }).catch(() => {
+                resultDiv.textContent = "Failed to copy！";
+            });
+        }
+    </script>
+</body>
+</html>
