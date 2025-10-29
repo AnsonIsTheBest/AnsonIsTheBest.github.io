@@ -299,8 +299,7 @@ Other: Never-Melt Ice, Booster Energy</textarea>
                 </div>
                 
                 <button onclick="replaceText()">转换文本</button>
-                <button class="btn-blue" onclick="clearText()">清空输入</button>
-                
+                <button class="btn-blue" onclick="copyResult()">复制结果</button>                
                 <div class="output-container">
                     <h3>输出结果：</h3>
                     <div id="output">转换结果将显示在这里...</div>
@@ -3723,13 +3722,30 @@ Leftovers=吃剩的东西</textarea>
             document.getElementById("replaceCount").textContent = replaceCount;
         }
         
-        // 清空输入
-        function clearText() {
-            document.getElementById("input").value = "";
-            document.getElementById("output").textContent = "转换结果将显示在这里...";
-            document.getElementById("charCount").textContent = "0";
-            document.getElementById("replaceCount").textContent = "0";
-        }
+        // 复制替换结果
+function copyResult() {
+    const output = document.getElementById("output").textContent;
+    if (!output || output === "转换结果将显示在这里..." || output === "（无内容）") {
+        alert("没有可复制的内容！");
+        return;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = output;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+
+    const btn = document.querySelector('.btn-blue');
+    const originalText = btn.textContent;
+    btn.textContent = "✓ 已复制！";
+    btn.disabled = true;
+    setTimeout(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }, 1500);
+}
         
         // 更新字符计数
         function updateCharCount() {
