@@ -3,299 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文本对照与段落高亮工具（BBCode 复制）</title>
-    <script src="diff_match_patch.js"></script>
+    <title>高级翻译审核工具 - 增强存储版</title>
+    <script src="https://unpkg.com/diff-match-patch@2.0.2/index.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
+        :root {
+            --primary-color: #1a73e8;
+            --delete-color: rgb(184, 49, 47);
+            --insert-color: rgb(41, 105, 176);
+            --bg-color: #f8f9fa;
         }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .input-panel, .output-panel {
-            flex: 1;
-            padding: 10px;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        .text-area {
-            width: 100%;
-            height: 400px;
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            resize: none;
-            font-size: 14px;
-            line-height: 1.6;
-            outline: none;
-        }
-        .diff-output {
-            width: 100%;
-            height: 350px; /* 调整高度给按钮留出空间 */
-            padding: 10px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            background-color: #eee;
-            overflow-y: auto;
-            font-size: 14px;
-            line-height: 1.6;
-            white-space: pre-wrap; /* 保证换行符和空格正确显示 */
-        }
-        .button-container {
-            margin-top: 10px;
-            text-align: right;
-        }
-        .copy-button {
-            padding: 10px 15px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        .copy-button:hover {
-            background-color: #0056b3;
-        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 20px; background-color: var(--bg-color); color: #333; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: var(--primary-color); margin: 0; }
+        .status-text { font-size: 12px; color: #888; margin-top: 5px; }
+
+        .container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; height: calc(100vh - 120px); min-height: 500px; }
+        .panel { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { padding: 10px 15px; background: #eee; border-bottom: 1px solid #ddd; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         
-        /* 差异标记的 CSS 样式 (用于视觉显示) */
-        .deleted {
-            color: rgb(184, 49, 47);
-            text-decoration: line-through;
-            font-weight: bold;
-        }
-        .inserted {
-            color: rgb(41, 105, 176);
-            font-weight: bold;
-            background-color: rgba(41, 105, 176, 0.1);
-        }
-        .paragraph-line-numbers {
-            margin-top: 10px;
-            text-align: center;
-            font-weight: bold;
-            color: #0056b3;
-        }
+        .text-area { flex: 1; width: 100%; border: none; padding: 15px; box-sizing: border-box; resize: none; font-size: 14px; line-height: 1.7; outline: none; font-family: inherit; }
+        .diff-output { flex: 1; padding: 15px; overflow-y: auto; background: #fff; font-size: 14px; line-height: 1.7; white-space: pre-wrap; border-top: 1px solid #eee; }
+
+        /* 差异样式 */
+        .deleted { color: var(--delete-color); text-decoration: line-through; font-weight: bold; background-color: rgba(184, 49, 47, 0.05); }
+        .inserted { color: var(--insert-color); font-weight: bold; background-color: rgba(41, 105, 176, 0.1); }
+        
+        /* 按钮与页脚 */
+        .footer { padding: 10px 15px; background: #f1f3f4; border-top: 1px solid #ddd; }
+        .copy-btn { width: 100%; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
+        .copy-btn:hover { opacity: 0.9; }
+        .para-info { font-size: 12px; color: var(--primary-color); font-weight: 500; }
+        
+        #saveIndicator { float: right; font-size: 11px; color: #28a745; }
     </style>
 </head>
 <body>
 
-    <h1>文本对照与翻译审核工具</h1>
+<header>
+    <h1>翻译审核对照工具</h1>
+    <div class="status-text">数据将每 5 秒自动保存至浏览器本地存储 (Local Storage)</div>
+</header>
 
-    <div class="container">
-        <div class="input-panel">
-            <h2>原文本 (Source)</h2>
-            <textarea id="originalText" class="text-area" placeholder="请输入原文本..." oninput="updateDiff()" onkeyup="handleFocus(event, 'originalText')" onmouseup="handleFocus(event, 'originalText')"></textarea>
-            <div id="originalParagraphNumber" class="paragraph-line-numbers">光标段落: -</div>
-        </div>
-        
-        <div class="input-panel">
-            <h2>新文本 (Target)</h2>
-            <textarea id="newText" class="text-area" placeholder="请输入新文本..." oninput="updateDiff()" onkeyup="handleFocus(event, 'newText')" onmouseup="handleFocus(event, 'newText')"></textarea>
-            <div id="newParagraphNumber" class="paragraph-line-numbers">光标段落: -</div>
-        </div>
-        
-        <div class="output-panel">
-            <h2>对照结果 (Diff Output)</h2>
-            <div id="diffOutput" class="diff-output"></div>
-            
-            <div class="button-container">
-                <button class="copy-button" onclick="copyBBCode()">一键复制 BBCode 结果</button>
-            </div>
-        </div>
+<div class="container">
+    <div class="panel">
+        <div class="panel-header">原文本 (Source) <span id="p1" class="para-info">段落: 1</span></div>
+        <textarea id="t1" class="text-area" placeholder="粘贴原文..."></textarea>
     </div>
 
-    <script>
-        const dmp = new diff_match_patch();
-        const originalTextarea = document.getElementById('originalText');
-        const newTextarea = document.getElementById('newText');
-        const diffOutputDiv = document.getElementById('diffOutput');
-        const originalParaNumberDiv = document.getElementById('originalParagraphNumber');
-        const newParaNumberDiv = document.getElementById('newParagraphNumber');
+    <div class="panel">
+        <div class="panel-header">新文本 (Target) <span id="p2" class="para-info">段落: 1</span></div>
+        <textarea id="t2" class="text-area" placeholder="粘贴修订后的译文..."></textarea>
+    </div>
 
-        // 全局变量，用于存储最后生成的 BBCode 文本
-        let finalBBCodeOutput = '';
+    <div class="panel">
+        <div class="panel-header">预览与输出 <span id="saveIndicator"></span></div>
+        <div id="out" class="diff-output"></div>
+        <div class="footer">
+            <button class="copy-btn" onclick="doCopy()">一键复制 BBCode 结果</button>
+        </div>
+    </div>
+</div>
 
-        /**
-         * 核心功能：实时计算并显示差异
-         */
-        function updateDiff() {
-            const original = originalTextarea.value;
-            const newText = newTextarea.value;
+<script>
+    const dmp = new diff_match_patch();
+    const el1 = document.getElementById('t1');
+    const el2 = document.getElementById('t2');
+    const elOut = document.getElementById('out');
+    const elSave = document.getElementById('saveIndicator');
+    let bbResult = "";
 
-            const diffs = dmp.diff_main(original, newText);
+    // 1. 核心功能：使用 localStorage 存取
+    function saveData() {
+        localStorage.setItem('audit_orig', el1.value);
+        localStorage.setItem('audit_new', el2.value);
+        const now = new Date();
+        elSave.innerText = `自动保存于 ${now.toLocaleTimeString()}`;
+        setTimeout(() => { elSave.innerText = ""; }, 2000); // 闪烁提示后隐藏
+    }
 
-            let htmlOutput = ''; // 用于在 div 中显示
-            let bbcodeOutput = ''; // 用于复制
+    function loadData() {
+        const o = localStorage.getItem('audit_orig');
+        const n = localStorage.getItem('audit_new');
+        if (o !== null) el1.value = o;
+        if (n !== null) el2.value = n;
+    }
 
-            // 定义您的 BBCode 标记
-            const DELETED_START = '[B][S][COLOR=rgb(184, 49, 47)]';
-            const DELETED_END = '[/COLOR][/S][/B]';
-            const INSERTED_START = '[COLOR=rgb(41, 105, 176)][B]';
-            const INSERTED_END = '[/B][/COLOR]';
+    // 2. 差异计算
+    function runDiff() {
+        const diffs = dmp.diff_main(el1.value, el2.value);
+        dmp.diff_cleanupSemantic(diffs); // 使差异更符合人类阅读习惯
 
-            for (let i = 0; i < diffs.length; i++) {
-                const op = diffs[i][0];
-                const text = diffs[i][1];
+        let html = "";
+        let bb = "";
 
-                // 1. 处理 HTML 显示
-                const formattedHtmlText = text.replace(/\n/g, '<br>');
+        diffs.forEach(d => {
+            const [op, text] = d;
+            const escapedText = text.replace(/\n/g, '<br>');
 
-                // 2. 处理 BBCode 输出 (保留原始的 \n 换行符)
-                
-                if (op === 0) {
-                    // 相同部分 (Equal)
-                    htmlOutput += formattedHtmlText;
-                    bbcodeOutput += text;
-                } else if (op === 1) {
-                    // 增加部分 (Insert)
-                    htmlOutput += `<span class="inserted">${formattedHtmlText}</span>`;
-                    bbcodeOutput += `${INSERTED_START}${text}${INSERTED_END}`;
-                } else if (op === -1) {
-                    // 删除部分 (Delete)
-                    htmlOutput += `<span class="deleted">${formattedHtmlText}</span>`;
-                    bbcodeOutput += `${DELETED_START}${text}${DELETED_END}`;
-                }
+            if (op === 0) { // 相同
+                html += escapedText;
+                bb += text;
+            } else if (op === 1) { // 新增
+                html += `<span class="inserted">${escapedText}</span>`;
+                bb += `[COLOR=rgb(41, 105, 176)][B]${text}[/B][/COLOR]`;
+            } else if (op === -1) { // 删除
+                html += `<span class="deleted">${escapedText}</span>`;
+                bb += `[B][S][COLOR=rgb(184, 49, 47)]${text}[/COLOR][/S][/B]`;
             }
+        });
 
-            // 存储 BBCode 结果供复制使用
-            finalBBCodeOutput = bbcodeOutput; 
-            
-            // 显示 HTML 结果
-            diffOutputDiv.innerHTML = htmlOutput;
-        }
+        bbResult = bb;
+        elOut.innerHTML = html;
+    }
 
-        /**
-         * 复制 BBCode 结果到剪贴板
-         */
-        function copyBBCode() {
-            if (!finalBBCodeOutput) {
-                alert('请先输入文本进行对照！');
-                return;
-            }
+    // 3. 段落识别
+    function trackPara(e, targetId) {
+        const area = e.target;
+        const textUpToCursor = area.value.substring(0, area.selectionStart);
+        // 按换行符分割，过滤掉由于连击产生的空段落（可选），这里采用标准行识别
+        const lines = textUpToCursor.split('\n');
+        const paraNum = lines.length;
+        document.getElementById(targetId).innerText = `段落: ${paraNum}`;
+    }
 
-            // 使用 Clipboard API 复制文本
-            navigator.clipboard.writeText(finalBBCodeOutput).then(() => {
-                alert('BBCode 结果已成功复制到剪贴板！');
-            }).catch(err => {
-                // 如果 Clipboard API 失败 (例如在旧版浏览器或非安全上下文)，使用 fallback 方案
-                console.error('无法使用 Clipboard API 复制:', err);
-                fallbackCopyTextToClipboard(finalBBCodeOutput);
-                alert('BBCode 结果已复制到剪贴板 (Fallback)');
-            });
-        }
+    // 4. 复制
+    function doCopy() {
+        if (!bbResult) return;
+        navigator.clipboard.writeText(bbResult).then(() => {
+            alert("BBCode 已成功复制到剪贴板！");
+        });
+    }
+
+    // 5. 初始化与事件绑定
+    window.onload = () => {
+        loadData();
+        runDiff();
+
+        el1.addEventListener('input', runDiff);
+        el2.addEventListener('input', runDiff);
         
-        /**
-         * 剪贴板复制失败时的备用方法
-         */
-        function fallbackCopyTextToClipboard(text) {
-            var textArea = document.createElement("textarea");
-            textArea.value = text;
-            
-            // 避免用户看到或互动
-            textArea.style.position = "fixed";
-            textArea.style.top = 0;
-            textArea.style.left = 0;
-            textArea.style.width = '2em';
-            textArea.style.height = '2em';
-            textArea.style.padding = 0;
-            textArea.style.border = 'none';
-            textArea.style.outline = 'none';
-            textArea.style.boxShadow = 'none';
-            textArea.style.background = 'transparent';
+        // 绑定光标位置监听
+        const events = ['keyup', 'click', 'focus'];
+        events.forEach(ev => {
+            el1.addEventListener(ev, (e) => trackPara(e, 'p1'));
+            el2.addEventListener(ev, (e) => trackPara(e, 'p2'));
+        });
 
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+        // 设定5秒自动保存
+        setInterval(saveData, 5000);
+    };
+</script>
 
-            try {
-                var successful = document.execCommand('copy');
-                var msg = successful ? 'successful' : 'unsuccessful';
-                console.log('Fallback: Copying text command was ' + msg);
-            } catch (err) {
-                console.error('Fallback: Oops, unable to copy', err);
-            }
-
-            document.body.removeChild(textArea);
-        }
-
-        // --- 段落高亮/识别逻辑 (与之前保持一致) ---
-
-        /**
-         * 辅助功能：获取光标所在的段落编号
-         */
-        function getParagraphNumber(textarea) {
-            const cursorPosition = textarea.selectionStart;
-            const text = textarea.value.substring(0, cursorPosition);
-            
-            // 简单的段落分割：将所有内容按 \n\n 或 \r\n\r\n 分割
-            const paragraphs = textarea.value.split(/(\r?\n\r?\n|\r\r)/g).filter(p => p.trim() !== '');
-            
-            let charCount = 0;
-            for (let i = 0; i < paragraphs.length; i++) {
-                charCount += paragraphs[i].length;
-                if (i < paragraphs.length - 1) {
-                    // 估算分隔符的长度
-                    charCount += 2; 
-                }
-
-                if (cursorPosition <= charCount) {
-                    return i + 1;
-                }
-            }
-            
-            if (paragraphs.length > 0) {
-                 return paragraphs.length;
-            }
-            return 1;
-        }
-        
-        /**
-         * 处理焦点事件，更新段落编号
-         */
-        function handleFocus(event, sourceId) {
-            const activeTextarea = (sourceId === 'originalText') ? originalTextarea : newTextarea;
-            const targetTextarea = (sourceId === 'originalText') ? newTextarea : originalTextarea;
-            const activeParaDiv = (sourceId === 'originalText') ? originalParaNumberDiv : newParaNumberDiv;
-            const targetParaDiv = (sourceId === 'originalText') ? newParaNumberDiv : originalParaNumberDiv;
-
-            const currentParaNumber = getParagraphNumber(activeTextarea);
-            activeParaDiv.innerHTML = `光标段落: **${currentParaNumber}**`;
-            
-            const targetParagraphs = targetTextarea.value.split(/(\r?\n\r?\n|\r\r)/).filter(p => p.trim() !== '');
-            const targetParaCount = targetParagraphs.length;
-            
-            if (currentParaNumber <= targetParaCount) {
-                 targetParaDiv.innerHTML = `对应段落: **${currentParaNumber}**`;
-            } else {
-                 targetParaDiv.innerHTML = `对应段落: - (超出范围)`;
-            }
-        }
-        
-        // 初始化和事件绑定
-        window.onload = function() {
-            originalTextarea.value = "这是第一段落，包含需要删除的词汇伤害。\n\n这是第二段落，原文本是旧版本。";
-            newTextarea.value = "这是第一段落，包含需要增加的词汇平衡攻队。\n\n这是第二段落，新文本是增加的版本。";
-            updateDiff();
-        };
-
-        originalTextarea.addEventListener('input', updateDiff);
-        newTextarea.addEventListener('input', updateDiff);
-
-        originalTextarea.addEventListener('keyup', (e) => handleFocus(e, 'originalText'));
-        originalTextarea.addEventListener('mouseup', (e) => handleFocus(e, 'originalText'));
-        newTextarea.addEventListener('keyup', (e) => handleFocus(e, 'newText'));
-        newTextarea.addEventListener('mouseup', (e) => handleFocus(e, 'newText'));
-
-    </script>
 </body>
 </html>
