@@ -88,29 +88,39 @@
         if (n !== null) el2.value = n;
     }
 
-    // 2. 差异计算
+    // 2. 差异计算 - 修复后的版本
     function runDiff() {
         const diffs = dmp.diff_main(el1.value, el2.value);
-        dmp.diff_cleanupSemantic(diffs); // 使差异更符合人类阅读习惯
+        dmp.diff_cleanupSemantic(diffs); 
 
         let html = "";
         let bb = "";
 
-        diffs.forEach(d => {
-            const [op, text] = d;
+        // 定义 BBCode 标签
+        const DEL_START = '[B][S][COLOR=rgb(184, 49, 47)]';
+        const DEL_END = '[/COLOR][/S][/B]';
+        const INS_START = '[COLOR=rgb(41, 105, 176)][B]';
+        const INS_END = '[/B][/COLOR]';
+
+        // 使用标准 for 循环以避免迭代器兼容性问题
+        for (let i = 0; i < diffs.length; i++) {
+            const op = diffs[i][0];   // 操作类型: 0=等, 1=增, -1=删
+            const text = diffs[i][1]; // 文本内容
+            
+            // 安全处理：转义 HTML 换行
             const escapedText = text.replace(/\n/g, '<br>');
 
-            if (op === 0) { // 相同
+            if (op === 0) { // 相同 (Equal)
                 html += escapedText;
                 bb += text;
-            } else if (op === 1) { // 新增
+            } else if (op === 1) { // 新增 (Insert)
                 html += `<span class="inserted">${escapedText}</span>`;
-                bb += `[COLOR=rgb(41, 105, 176)][B]${text}[/B][/COLOR]`;
-            } else if (op === -1) { // 删除
+                bb += `${INS_START}${text}${INS_END}`;
+            } else if (op === -1) { // 删除 (Delete)
                 html += `<span class="deleted">${escapedText}</span>`;
-                bb += `[B][S][COLOR=rgb(184, 49, 47)]${text}[/COLOR][/S][/B]`;
+                bb += `${DEL_START}${text}${DEL_END}`;
             }
-        });
+        }
 
         bbResult = bb;
         elOut.innerHTML = html;
