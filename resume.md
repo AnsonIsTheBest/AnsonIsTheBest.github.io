@@ -1,7 +1,7 @@
 # Anson Chen
-Pleasanton California • ansonuisutheubest@gmail.com • GitHub: https://github.com/AnsonIsTheBest • Portfolio: https://ansonisthebest.github.io/resume.md • [Linkedin](https://www.linkedin.com/in/%E9%82%95%E5%AE%89-%E9%99%88-0baa48368/?locale=en-US)
+Pleasanton California • ansonuisutheubest@gmail.com • GitHub: https://github.com/AnsonIsTheBest • [Portfolio](https://ansonisthebest.github.io/resume.md) • [Linkedin](https://www.linkedin.com/in/%E9%82%95%E5%AE%89-%E9%99%88-0baa48368/?locale=en-US)
 
-## Objective
+## Profile
 High school student with skills in software development, web development, and problem-solving.
 
 ## Technical Skills
