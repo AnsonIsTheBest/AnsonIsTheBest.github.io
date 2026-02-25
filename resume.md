@@ -34,4 +34,4 @@ https://github.com/AnsonIsTheBest/My-Plugins
 **Relevant Coursework:** AP Computer Science A, AP Calculus BC, Physics
 
 ## Additional
-- **Interests:** app development, automation, basic reverse engineering / resource scrapping & hacking, translation/localization
+- **Interests:** app development, automation, translation/localization
